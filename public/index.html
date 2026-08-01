@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recetas IA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>🍳 Recetas IA</h1>
+
+    <form id="form">
+      <label for="ingredientes">¿Qué ingredientes tenés?</label>
+      <textarea id="ingredientes" placeholder="Ej: pollo, arroz, tomate, cebolla" required></textarea>
+
+      <label for="tipoComida">Tipo de comida (opcional)</label>
+      <input id="tipoComida" type="text" placeholder="Ej: liviano, al horno, vegetariano">
+
+      <label for="contexto">¿Para quién o qué situación? (opcional)</label>
+      <input id="contexto" type="text" placeholder="Ej: cena rápida para 2, niños, dieta">
+
+      <button type="submit">Sugerir recetas</button>
+    </form>
+
+    <div id="estado"></div>
+    <div id="resultado"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
