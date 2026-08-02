@@ -11,20 +11,18 @@
     <h1>🍳 Recetas IA</h1>
 
     <form id="form">
-      <label for="ingredientes">¿Qué ingredientes tenés?</label>
-      <textarea id="ingredientes" placeholder="Ej: pollo, arroz, tomate, cebolla" required></textarea>
+      <label for="consulta">¿Qué querés cocinar?</label>
+      <div class="input-row">
+        <textarea id="consulta" placeholder="Ej: tengo pollo y arroz, quiero algo rápido para cenar con mis hijos" required></textarea>
+        <button type="button" id="micBtn" title="Dictar por voz" aria-label="Dictar por voz">🎤</button>
+      </div>
 
-      <label for="tipoComida">Tipo de comida (opcional)</label>
-      <input id="tipoComida" type="text" placeholder="Ej: liviano, al horno, vegetariano">
-
-      <label for="contexto">¿Para quién o qué situación? (opcional)</label>
-      <input id="contexto" type="text" placeholder="Ej: cena rápida para 2, niños, dieta">
-
-      <button type="submit">Sugerir recetas</button>
+      <button type="submit" id="submitBtn">Sugerir recetas</button>
     </form>
 
     <div id="estado"></div>
     <div id="resultado"></div>
+    <button type="button" id="masBtn" style="display:none;">Ver más</button>
   </main>
 
   <script src="app.js"></script>

@@ -11,21 +11,23 @@ app.use(express.json());
 app.use(express.static('public'));
 
 app.post('/api/suggest', async (req, res) => {
-  const { ingredientes, tipoComida, contexto } = req.body;
+  const { consulta, excluir } = req.body;
 
-  if (!ingredientes || !ingredientes.trim()) {
-    return res.status(400).json({ error: 'Falta indicar los ingredientes.' });
+  if (!consulta || !consulta.trim()) {
+    return res.status(400).json({ error: 'Falta indicar qué querés cocinar.' });
   }
 
-  const prompt = `Sos un asistente de cocina. Sugerí 3 recetas posibles con base en lo siguiente:
+  const exclusion = Array.isArray(excluir) && excluir.length
+    ? `\n\nYa se sugirieron estas recetas, no las repitas: ${excluir.join(', ')}.`
+    : '';
 
-Ingredientes disponibles: ${ingredientes}
-Tipo de comida deseada: ${tipoComida || 'sin preferencia'}
-Para quién / situación: ${contexto || 'sin especificar'}
+  const prompt = `Sos un asistente de cocina. El usuario te va a describir en lenguaje libre qué quiere cocinar (puede mencionar ingredientes que tiene, tipo de comida, para quién es, o cualquier combinación). Sugerí 3 recetas posibles.
+
+Pedido del usuario: ${consulta}${exclusion}
 
 Para cada receta indicá:
-- Nombre del plato
-- Ingredientes que se usan (priorizando los disponibles, marcando cuáles faltarían si son imprescindibles)
+- Nombre del plato (como encabezado, ej: "# Nombre")
+- Ingredientes que se usan (priorizando los que el usuario ya tiene, marcando cuáles faltarían si son imprescindibles)
 - Pasos breves y claros, numerados
 - Tiempo estimado de preparación
 
