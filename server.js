@@ -55,3 +55,5 @@ Respondé en español, en formato Markdown, sin agregar comentarios extra antes 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Recetas app corriendo en http://localhost:${PORT}`);
 });
+
+module.exports = app;
