@@ -1,0 +1,13 @@
+{
+  "name": "Caminata Japonesa",
+  "short_name": "Caminata",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f3a5f",
+  "theme_color": "#1f3a5f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

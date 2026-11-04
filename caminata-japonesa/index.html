@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3a5f">
+<title>Caminata Japonesa</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- CONFIGURACIÓN -->
+<section id="setup" class="screen active">
+  <h1>Caminata<br>Japonesa</h1>
+
+  <div class="field">
+    <div class="label">Minutos por ritmo</div>
+    <div class="stepper">
+      <button class="step" data-target="minutes" data-delta="-1">−</button>
+      <div class="value" id="minutes">3</div>
+      <button class="step" data-target="minutes" data-delta="1">+</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="label">Ciclos</div>
+    <div class="stepper">
+      <button class="step" data-target="cycles" data-delta="-1">−</button>
+      <div class="value" id="cycles">5</div>
+      <button class="step" data-target="cycles" data-delta="1">+</button>
+    </div>
+  </div>
+
+  <div class="total" id="total"></div>
+  <button class="big go" id="btnStart">INICIAR</button>
+</section>
+
+<!-- CAMINATA -->
+<section id="run" class="screen">
+  <div class="phase" id="phase">LENTO</div>
+  <div class="clock" id="clock">3:00</div>
+  <div class="cycle" id="cycleInfo">Ciclo 1 de 5</div>
+  <div class="row">
+    <button class="big" id="btnPause">PAUSA</button>
+    <button class="big stop" id="btnStop">TERMINAR</button>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section id="done" class="screen">
+  <h2>¡Muy bien, Osvaldo!</h2>
+  <p class="thanks" id="thanks"></p>
+  <div class="fact">
+    <div class="fact-title" id="factTitle">Un día como hoy…</div>
+    <p id="factText">Buscando un dato curioso…</p>
+  </div>
+  <button class="big music" id="btnMusic">🎵 MÚSICA</button>
+  <button class="big go" id="btnHome">VOLVER</button>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #1f3a5f;
+  color: #fff;
+  user-select: none;
+  transition: background .4s;
+}
+body.slow { background: #1f5fa8; }
+body.fast { background: #e8590c; }
+body.paused { background: #555; }
+
+.screen {
+  display: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  text-align: center;
+  gap: 16px;
+}
+.screen.active { display: flex; }
+
+h1 { font-size: 13vw; line-height: 1.05; }
+h2 { font-size: 11vw; }
+
+.field { width: 100%; }
+.label { font-size: 7vw; margin-bottom: 8px; opacity: .9; }
+
+.stepper { display: flex; align-items: center; justify-content: center; gap: 4vw; }
+.step {
+  width: 22vw; height: 22vw; max-width: 120px; max-height: 120px;
+  border-radius: 50%; border: none;
+  background: #fff; color: #1f3a5f;
+  font-size: 16vw; font-weight: 700; line-height: 1;
+}
+.step:active { transform: scale(.94); }
+.value { font-size: 24vw; font-weight: 800; min-width: 30vw; font-variant-numeric: tabular-nums; }
+
+.total { font-size: 6vw; opacity: .9; }
+
+.big {
+  width: 100%; max-width: 520px;
+  padding: 6vw 0;
+  border: none; border-radius: 20px;
+  font-size: 9vw; font-weight: 800;
+  background: #fff; color: #222;
+}
+.big:active { transform: scale(.97); }
+.big.go { background: #2f9e44; color: #fff; }
+.big.stop { background: #c92a2a; color: #fff; }
+.big.music { background: #f59f00; color: #222; }
+
+.row { display: flex; flex-direction: column; gap: 16px; width: 100%; align-items: center; }
+
+.phase { font-size: 16vw; font-weight: 900; letter-spacing: 2px; }
+.clock { font-size: 34vw; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.cycle { font-size: 8vw; font-weight: 600; }
+
+.thanks { font-size: 6.5vw; line-height: 1.3; }
+.fact {
+  background: rgba(255,255,255,.15);
+  border-radius: 16px; padding: 16px; width: 100%;
+  font-size: 5.5vw; line-height: 1.35;
+}
+.fact-title { font-weight: 800; margin-bottom: 8px; }
+
+@media (min-width: 700px) {
+  h1 { font-size: 80px; } h2 { font-size: 64px; }
+  .label { font-size: 40px; } .value { font-size: 140px; min-width: 180px; }
+  .step { font-size: 90px; } .total { font-size: 32px; }
+  .big { font-size: 48px; padding: 28px 0; }
+  .phase { font-size: 96px; } .clock { font-size: 220px; } .cycle { font-size: 44px; }
+  .thanks { font-size: 34px; } .fact { font-size: 28px; }
+}
