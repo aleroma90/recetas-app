@@ -79,16 +79,6 @@ function finishSignal() {
 
 function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
 
-// ---------- Pantalla encendida ----------
-let wakeLock = null;
-async function keepAwake() {
-  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-}
-function releaseAwake() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.running) keepAwake();
-});
-
 // ---------- Cronómetro ----------
 const state = { running: false, paused: false, cycle: 1, phase: 'slow', endAt: 0, remaining: 0, timer: null };
 
@@ -130,7 +120,6 @@ $('btnStart').addEventListener('click', () => {
   audio();
   Object.assign(state, { running: true, paused: false, cycle: 1 });
   show('run');
-  keepAwake();
   startPhase('slow');
   $('clock').textContent = fmt(cfg.minutes * 60000);
   clearInterval(state.timer);
@@ -148,14 +137,17 @@ $('btnPause').addEventListener('click', () => {
   renderRun();
 });
 
+// Doble toque para terminar (evita toques accidentales)
+let stopArmed = null;
 $('btnStop').addEventListener('click', () => {
-  if (confirm('¿Terminar la caminata?')) finish(false);
+  if (stopArmed) { clearTimeout(stopArmed); stopArmed = null; $('btnStop').textContent = 'TERMINAR'; finish(false); return; }
+  $('btnStop').textContent = '¿SEGURO? TOCÁ OTRA VEZ';
+  stopArmed = setTimeout(() => { stopArmed = null; $('btnStop').textContent = 'TERMINAR'; }, 4000);
 });
 
 function finish(completed) {
   state.running = false;
   clearInterval(state.timer);
-  releaseAwake();
   document.body.className = '';
   if (completed) finishSignal();
   const mins = completed ? cfg.minutes * 2 * cfg.cycles : null;
