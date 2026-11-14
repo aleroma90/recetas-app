@@ -342,13 +342,13 @@ function achicarImagen(file) {
   return new Promise((ok, mal) => {
     const img = new Image();
     img.onload = () => {
-      const max = 1400;
+      const max = 1280;
       const k = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * k);
       c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      const url = c.toDataURL('image/jpeg', 0.8);
+      const url = c.toDataURL('image/jpeg', 0.72);
       URL.revokeObjectURL(img.src);
       ok({ media_type: 'image/jpeg', data: url.split(',')[1], url });
     };
@@ -358,8 +358,8 @@ function achicarImagen(file) {
 }
 async function sumarFotos(e) {
   const archivos = [...e.target.files];
-  if (estado.fotos.length + archivos.length > 6) toast('Hasta 6 fotos por receta.');
-  for (const f of archivos.slice(0, 6 - estado.fotos.length)) {
+  if (estado.fotos.length + archivos.length > 10) toast('Hasta 10 fotos por receta.');
+  for (const f of archivos.slice(0, 10 - estado.fotos.length)) {
     try { estado.fotos.push(await achicarImagen(f)); } catch (err) { toast(err.message); }
   }
   e.target.value = '';
