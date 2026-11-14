@@ -2,7 +2,7 @@ const path = require('path');
 require('dotenv').config({ path: ['.env.local', '.env'] });
 const express = require('express');
 const { leerLink } = require('./lib/fuentes');
-const { extraerReceta, buscarRecetas, crearReceta } = require('./lib/ia');
+const { extraerReceta, buscarRecetas, crearReceta, modificarReceta } = require('./lib/ia');
 const sheets = require('./lib/sheets');
 
 const app = express();
@@ -70,6 +70,19 @@ app.post('/api/descubrir', async (req, res) => {
   } catch (err) {
     console.error('descubrir', err);
     res.status(500).json({ error: 'No pude buscar recetas ahora. Probá de nuevo en un rato.' });
+  }
+});
+
+app.post('/api/modificar', async (req, res) => {
+  const { receta, pedido = '' } = req.body || {};
+  if (!receta || !String(pedido).trim()) return res.status(400).json({ error: 'Escribí qué querés cambiar.' });
+  try {
+    const nueva = await modificarReceta(receta, String(pedido).slice(0, 1000));
+    const { resumen_cambios: resumen, es_receta, falta_info, ...cambios } = nueva;
+    res.json({ receta: cambios, resumen });
+  } catch (err) {
+    console.error('modificar', err);
+    res.status(500).json({ error: 'No pude aplicar el cambio. Probá de nuevo.' });
   }
 });
 

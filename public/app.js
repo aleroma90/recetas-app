@@ -88,7 +88,7 @@ function enrutar() {
   const [ruta, id] = h.split('/');
   // Después de guardar una receta nueva, "atrás" saltea las pantallas de carga y vuelve a la lista.
   if (estado.flujoCerrado) {
-    if (['agregar', 'descubrir', 'editar'].includes(ruta)) return history.back();
+    if (['agregar', 'descubrir', 'editar'].includes(ruta) && !id) return history.back();
     if (ruta !== 'receta' && ruta !== 'cocina') estado.flujoCerrado = false;
   }
   if (ruta === 'agregar') return mostrarVista('agregar');
@@ -103,6 +103,7 @@ function enrutar() {
       const r = estado.recetas.find((x) => x.id === id);
       if (!r) return ir('#/');
       estado.borrador = structuredClone(r);
+      estado.cambio = null;
     }
     if (!estado.borrador) return ir('#/agregar');
     return abrirEditor();
@@ -117,6 +118,7 @@ document.querySelectorAll('.volver').forEach((b) => b.addEventListener('click', 
   if (b.closest('#v-editar')) {
     const id = estado.borrador?.id;
     estado.borrador = null;
+    estado.cambio = null;
     if (id && estado.editandoDesdeDetalle) { estado.editandoDesdeDetalle = false; return history.back(); }
     location.replace(id ? `#/receta/${id}` : estado.origen === 'descubrir' ? '#/descubrir' : '#/agregar');
   } else if (estado.navegoEnApp) {
@@ -398,6 +400,7 @@ async function extraer() {
       body: { url, texto, imagenes: estado.fotos.map(({ media_type, data }) => ({ media_type, data })) },
     });
     estado.borrador = receta;
+    estado.cambio = null;
     ir('#/editar');
   } catch (err) {
     $('#agregar-error').textContent = err.message;
@@ -414,6 +417,7 @@ $('#b-manual').addEventListener('click', () => {
     dietas: [], cocina: '', etiquetas: [], ingredientes: [{ cantidad: null, unidad: '', nombre: '', base: '', nota: '', grupo: '' }],
     pasos: [''], tips: '', falta_info: '',
   };
+  estado.cambio = null;
   ir('#/editar');
 });
 
@@ -577,6 +581,7 @@ $('#desc-lista').addEventListener('click', async (e) => {
       estado.borrador = await crearConIa(r);
     }
     estado.origen = 'descubrir';
+    estado.cambio = null;
     ir('#/editar');
   } catch (err) {
     toast(err.message);
@@ -611,6 +616,13 @@ function abrirEditor() {
   $('#editar-titulo').textContent = r.id ? 'Editar receta' : 'Revisá la receta';
   $('#f-editar').innerHTML = `
     ${r.falta_info ? `<div class="aviso">⚠️ ${esc(r.falta_info)}</div>` : ''}
+    <div class="panel ia-cambio">
+      <label class="etq" for="i-cambio">✨ Pedile cambios a la IA</label>
+      <textarea id="i-cambio" rows="3" placeholder="Ej: agregale calabaza · decí zapallo en vez de calabaza · cambiá la manteca por aceite"></textarea>
+      <button type="button" id="b-cambio" class="btn primario">Aplicar cambio</button>
+      ${estado.cambio ? `<div class="cambio-ok">✓ ${esc(estado.cambio.resumen)}
+        <button type="button" id="b-deshacer" class="btn link">↶ Deshacer</button></div>` : ''}
+    </div>
     ${r.imagen ? `<img class="foto-prev" src="${esc(r.imagen)}" alt="">` : ''}
     <label class="etq">Nombre</label><input name="titulo" value="${esc(r.titulo)}" required>
     <label class="etq">Descripción</label><textarea name="descripcion" rows="2">${esc(r.descripcion)}</textarea>
@@ -657,7 +669,32 @@ $('#f-editar').addEventListener('click', (e) => {
   else if (b.id === 'b-add-paso') { $('#ed-pasos').insertAdjacentHTML('beforeend', filaPaso('')); $('#ed-pasos').lastElementChild.querySelector('textarea').focus(); }
   else if (b.dataset.quitar) b.parentElement.remove();
   else if (b.id === 'b-borrar') borrarReceta();
+  else if (b.id === 'b-cambio') pedirCambio();
+  else if (b.id === 'b-deshacer') {
+    estado.borrador = estado.cambio.antes;
+    estado.cambio = null;
+    abrirEditor();
+    toast('Cambio deshecho');
+  }
 });
+
+async function pedirCambio() {
+  const pedido = $('#i-cambio').value.trim();
+  if (!pedido) return toast('Escribí qué querés cambiar.');
+  const actual = leerEditor(); // incluye lo que hayas editado a mano
+  cargando(true, 'Aplicando el cambio…');
+  try {
+    const { receta, resumen } = await api('/api/modificar', { method: 'POST', body: { receta: actual, pedido } });
+    estado.borrador = { ...actual, ...receta, falta_info: '' };
+    estado.cambio = { antes: actual, resumen: resumen || 'Cambio aplicado.' };
+    abrirEditor();
+    toast('Revisá el cambio y tocá Guardar');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    cargando(false);
+  }
+}
 
 function leerEditor() {
   const f = $('#f-editar');
@@ -702,6 +739,7 @@ $('#f-editar').addEventListener('submit', async (e) => {
     i >= 0 ? (estado.recetas[i] = guardada) : estado.recetas.push(guardada);
     guardarLocal('recetas', estado.recetas);
     estado.borrador = null;
+    estado.cambio = null;
     toast('Receta guardada ✓');
     if (receta.id && estado.editandoDesdeDetalle) {
       estado.editandoDesdeDetalle = false;
