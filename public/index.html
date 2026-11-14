@@ -73,11 +73,17 @@
       <label class="etq" for="i-texto">Texto de la receta <span class="sutil">(opcional)</span></label>
       <textarea id="i-texto" rows="5" placeholder="Si el link no alcanza, pegá acá la descripción del posteo o la receta."></textarea>
 
-      <label class="etq">Capturas <span class="sutil">(opcional)</span></label>
-      <label class="btn secundario subir">
-        📷 Elegir capturas
-        <input id="i-fotos" type="file" accept="image/*" multiple hidden>
-      </label>
+      <label class="etq">Fotos o capturas <span class="sutil">(opcional, hasta 6)</span></label>
+      <div class="dos">
+        <label class="btn secundario subir">
+          📸 Sacar foto
+          <input id="i-camara" type="file" accept="image/*" capture="environment" hidden>
+        </label>
+        <label class="btn secundario subir">
+          🖼️ Elegir capturas
+          <input id="i-fotos" type="file" accept="image/*" multiple hidden>
+        </label>
+      </div>
       <div id="miniaturas" class="miniaturas"></div>
 
       <p id="agregar-error" class="error"></p>

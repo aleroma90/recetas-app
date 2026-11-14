@@ -356,13 +356,17 @@ function achicarImagen(file) {
     img.src = URL.createObjectURL(file);
   });
 }
-$('#i-fotos').addEventListener('change', async (e) => {
-  for (const f of [...e.target.files].slice(0, 6 - estado.fotos.length)) {
+async function sumarFotos(e) {
+  const archivos = [...e.target.files];
+  if (estado.fotos.length + archivos.length > 6) toast('Hasta 6 fotos por receta.');
+  for (const f of archivos.slice(0, 6 - estado.fotos.length)) {
     try { estado.fotos.push(await achicarImagen(f)); } catch (err) { toast(err.message); }
   }
   e.target.value = '';
   pintarMiniaturas();
-});
+}
+$('#i-fotos').addEventListener('change', sumarFotos);
+$('#i-camara').addEventListener('change', sumarFotos);
 function pintarMiniaturas() {
   $('#miniaturas').innerHTML = estado.fotos.map((f, i) => `<div><img src="${f.url}" alt=""><button data-i="${i}" aria-label="Quitar">✕</button></div>`).join('');
 }
