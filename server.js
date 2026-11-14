@@ -1,60 +1,116 @@
 const path = require('path');
-require('dotenv').config();
+const crypto = require('crypto');
+require('dotenv').config({ path: ['.env.local', '.env'] });
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
+const { leerLink } = require('./lib/fuentes');
+const { extraerReceta } = require('./lib/ia');
+const sheets = require('./lib/sheets');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/api/suggest', async (req, res) => {
-  const { consulta, excluir } = req.body;
+// --- Clave de la casa ---
+function mismaClave(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
 
-  if (!consulta || !consulta.trim()) {
-    return res.status(400).json({ error: 'Falta indicar qué querés cocinar.' });
+function protegido(req, res, next) {
+  const clave = process.env.APP_PASSWORD;
+  if (!clave) return res.status(500).json({ error: 'Falta configurar APP_PASSWORD en Vercel.' });
+  if (!mismaClave(req.get('x-clave') || '', clave)) return res.status(401).json({ error: 'Clave incorrecta' });
+  next();
+}
+
+app.post('/api/login', (req, res) => {
+  const clave = process.env.APP_PASSWORD;
+  if (!clave) return res.status(500).json({ error: 'Falta configurar APP_PASSWORD en Vercel.' });
+  if (!mismaClave(req.body?.clave || '', clave)) return res.status(401).json({ error: 'Clave incorrecta' });
+  res.json({ ok: true });
+});
+
+// --- Extraer receta con IA ---
+app.post('/api/extraer', protegido, async (req, res) => {
+  const { url = '', texto = '', imagenes = [] } = req.body || {};
+  if (!url && !texto.trim() && !imagenes.length) {
+    return res.status(400).json({ error: 'Pegá un link, un texto o subí una captura.' });
   }
 
-  const exclusion = Array.isArray(excluir) && excluir.length
-    ? `\n\nYa se sugirieron estas recetas, no las repitas: ${excluir.join(', ')}.`
-    : '';
+  let contenido = texto;
+  let imagen = '';
+  let fuente = '';
+  let avisoLink = '';
 
-  const prompt = `Sos un asistente de cocina. El usuario te va a describir en lenguaje libre qué quiere cocinar (puede mencionar ingredientes que tiene, tipo de comida, para quién es, o cualquier combinación). Sugerí 3 recetas posibles.
+  if (url) {
+    try {
+      const datos = await leerLink(url);
+      imagen = datos.imagen;
+      fuente = datos.fuente;
+      contenido = [datos.texto, texto].filter(Boolean).join('\n\n---\nTexto agregado por el usuario:\n');
+    } catch (err) {
+      console.error('leerLink', err.message);
+      avisoLink = 'No pude abrir el link.';
+    }
+  }
 
-Pedido del usuario: ${consulta}${exclusion}
-
-Para cada receta indicá:
-- Nombre del plato (como encabezado, ej: "# Nombre")
-- Ingredientes que se usan (priorizando los que el usuario ya tiene, marcando cuáles faltarían si son imprescindibles)
-- Pasos breves y claros, numerados
-- Tiempo estimado de preparación
-
-Respondé en español, en formato Markdown, sin agregar comentarios extra antes o después de las recetas.`;
+  if (!contenido.trim() && !imagenes.length) {
+    return res.status(422).json({
+      error: `${avisoLink || 'El link no trae la receta.'} Copiá el texto del posteo o subí una captura.`,
+      necesitaTexto: true,
+    });
+  }
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
+    const receta = await extraerReceta({ texto: contenido, imagenes, url });
+    if (!receta.es_receta) {
+      return res.status(422).json({
+        error: 'No encontré una receta ahí. Si está en el video, copiá el texto o subí una captura.',
+        necesitaTexto: true,
+      });
+    }
+    delete receta.es_receta;
+    res.json({
+      receta: { ...receta, url_origen: url, fuente: fuente || (url ? '' : 'Texto pegado'), imagen },
     });
-
-    const texto = message.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n');
-
-    res.json({ recetas: texto });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'No se pudo generar la sugerencia. Revisá la API key y probá de nuevo.' });
+    console.error('extraer', err);
+    res.status(500).json({ error: 'No se pudo procesar la receta. Probá de nuevo en un rato.' });
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Recetas app corriendo en http://localhost:${PORT}`);
+// --- Recetas (Google Sheet) ---
+app.get('/api/recetas', protegido, async (_req, res) => {
+  try {
+    res.json({ recetas: await sheets.listar() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
+
+app.post('/api/recetas', protegido, async (req, res) => {
+  try {
+    res.json({ receta: await sheets.guardar(req.body.receta) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/recetas/:id', protegido, async (req, res) => {
+  try {
+    res.json({ ok: await sheets.borrar(req.params.id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, '0.0.0.0', () => console.log(`Recetas de Casa en http://localhost:${PORT}`));
+}
 
 module.exports = app;

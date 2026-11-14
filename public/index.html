@@ -1,30 +1,138 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Recetas IA</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Recetas de Casa</title>
+  <meta name="theme-color" content="#c2562b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Recetas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main>
-    <h1>🍳 Recetas IA</h1>
+  <!-- Pantalla de clave -->
+  <section id="v-login" class="vista oculto">
+    <div class="login">
+      <img src="/icons/icon-192.png" alt="" class="login-logo">
+      <h1>Recetas de Casa</h1>
+      <p class="sutil">Ingresá la clave de la casa</p>
+      <form id="f-login">
+        <input id="i-clave" type="password" placeholder="Clave" autocomplete="current-password" required>
+        <button class="btn primario grande" type="submit">Entrar</button>
+        <p id="login-error" class="error"></p>
+      </form>
+    </div>
+  </section>
 
-    <form id="form">
-      <label for="consulta">¿Qué querés cocinar?</label>
-      <div class="input-row">
-        <textarea id="consulta" placeholder="Ej: tengo pollo y arroz, quiero algo rápido para cenar con mis hijos" required></textarea>
-        <button type="button" id="micBtn" title="Dictar por voz" aria-label="Dictar por voz">🎤</button>
+  <!-- Lista -->
+  <section id="v-lista" class="vista oculto">
+    <header class="barra">
+      <h1>Recetas de Casa</h1>
+      <button id="b-recargar" class="icono" aria-label="Actualizar">⟳</button>
+    </header>
+
+    <div class="buscador">
+      <input id="i-buscar" type="search" placeholder="Buscar receta o ingrediente…" autocomplete="off">
+      <button id="b-filtros" class="btn chico" aria-expanded="false">Filtros <span id="n-filtros" class="contador oculto"></span></button>
+    </div>
+
+    <div class="modo">
+      <button id="b-modo-todas" class="seg activo">Todas</button>
+      <button id="b-modo-tengo" class="seg">¿Qué cocino con lo que tengo?</button>
+    </div>
+
+    <div id="panel-tengo" class="panel oculto">
+      <label class="etq">Ingredientes que tenés</label>
+      <div class="chips-input">
+        <div id="tengo-chips" class="chips"></div>
+        <input id="i-tengo" type="text" placeholder="Ej: huevo, papa, queso… (Enter)" autocomplete="off" enterkeyhint="done">
+      </div>
+      <label class="check"><input id="c-basicos" type="checkbox" checked> Dar por hecho sal, aceite, agua, pimienta y azúcar</label>
+    </div>
+
+    <div id="panel-filtros" class="panel oculto"></div>
+
+    <p id="resumen" class="sutil resumen"></p>
+    <div id="lista" class="lista"></div>
+    <div id="vacio" class="vacio oculto">
+      <p>Todavía no hay recetas.</p>
+      <p class="sutil">Tocá <b>+</b> para agregar la primera.</p>
+    </div>
+
+    <button id="b-agregar" class="fab" aria-label="Agregar receta">+</button>
+  </section>
+
+  <!-- Agregar -->
+  <section id="v-agregar" class="vista oculto">
+    <header class="barra">
+      <button class="icono volver" aria-label="Volver">←</button>
+      <h1>Nueva receta</h1>
+      <span></span>
+    </header>
+    <div class="contenido">
+      <label class="etq" for="i-url">Link (Instagram, web de recetas…)</label>
+      <div class="fila">
+        <input id="i-url" type="url" placeholder="https://…" inputmode="url">
+        <button id="b-pegar" class="btn chico">Pegar</button>
       </div>
 
-      <button type="submit" id="submitBtn">Sugerir recetas</button>
-    </form>
+      <label class="etq" for="i-texto">Texto de la receta <span class="sutil">(opcional)</span></label>
+      <textarea id="i-texto" rows="5" placeholder="Si el link no alcanza, pegá acá la descripción del posteo o la receta."></textarea>
 
-    <div id="estado"></div>
-    <div id="resultado"></div>
-    <button type="button" id="masBtn" style="display:none;">Ver más</button>
-  </main>
+      <label class="etq">Capturas <span class="sutil">(opcional)</span></label>
+      <label class="btn secundario subir">
+        📷 Elegir capturas
+        <input id="i-fotos" type="file" accept="image/*" multiple hidden>
+      </label>
+      <div id="miniaturas" class="miniaturas"></div>
 
-  <script src="app.js"></script>
+      <p id="agregar-error" class="error"></p>
+      <button id="b-extraer" class="btn primario grande">✨ Armar receta</button>
+      <button id="b-manual" class="btn link">Cargar a mano</button>
+    </div>
+  </section>
+
+  <!-- Editar / revisar -->
+  <section id="v-editar" class="vista oculto">
+    <header class="barra">
+      <button class="icono volver" aria-label="Volver">←</button>
+      <h1 id="editar-titulo">Revisá la receta</h1>
+      <span></span>
+    </header>
+    <form id="f-editar" class="contenido"></form>
+  </section>
+
+  <!-- Detalle -->
+  <section id="v-detalle" class="vista oculto">
+    <header class="barra transparente">
+      <button class="icono volver" aria-label="Volver">←</button>
+      <span></span>
+      <button id="b-editar" class="icono" aria-label="Editar">✎</button>
+    </header>
+    <div id="detalle"></div>
+  </section>
+
+  <!-- Modo cocina -->
+  <section id="v-cocina" class="vista oculto cocina">
+    <header class="barra">
+      <button id="b-salir-cocina" class="icono" aria-label="Salir">✕</button>
+      <h1 id="cocina-titulo"></h1>
+      <span id="cocina-paso-n" class="sutil"></span>
+    </header>
+    <div id="cocina-cuerpo" class="cocina-cuerpo"></div>
+    <div class="cocina-nav">
+      <button id="b-ant" class="btn secundario grande">← Anterior</button>
+      <button id="b-sig" class="btn primario grande">Siguiente →</button>
+    </div>
+  </section>
+
+  <div id="cargando" class="cargando oculto"><div class="spinner"></div><p id="cargando-txt">Cargando…</p></div>
+  <div id="toast" class="toast oculto"></div>
+
+  <script src="/app.js"></script>
 </body>
 </html>

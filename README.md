@@ -1,42 +1,60 @@
-# Recetas IA
+# Recetas de Casa
 
-App simple para sugerir recetas según ingredientes disponibles, usando Claude (Anthropic).
+App para el celu donde guardan las recetas que encuentran (Instagram, webs de recetas, textos o capturas) y después las buscan por ingredientes que tienen, dificultad, duración, dulce/salado, tipo de plato, cómo se cocina, dieta y si ya la hicieron.
 
-## 1. Conseguir API key
+## Cómo funciona
 
-1. Entrá a https://console.anthropic.com/
-2. Creá una cuenta (o iniciá sesión) y cargá algo de crédito (con pocos dólares alcanza para uso personal).
-3. Andá a "API Keys" y creá una nueva key.
+- **Agregar**: pegás un link (o lo compartís desde Instagram), y si hace falta un texto o capturas. La IA arma la ficha (ingredientes, pasos, tiempos, dificultad…) traducida al español y en gramos/°C. La revisás y guardás.
+- **Buscar**: texto libre + filtros, o el modo **"¿Qué cocino con lo que tengo?"**, que ordena las recetas por lo que te falta.
+- **Receta**: ajustar porciones, modo cocina (la pantalla no se apaga), marcar "ya la hicimos" y puntaje.
+- **Datos**: se guardan en un Google Sheet (una fila por receta); se puede ver y corregir a mano.
+- **Acceso**: una clave compartida para la casa.
 
-## 2. Configurar
+## Puesta en marcha (una sola vez, ~15 min)
 
-1. Copiá `.env.example` a `.env`:
-   ```
-   copy .env.example .env
-   ```
-2. Pegá tu API key en `.env`:
-   ```
-   ANTHROPIC_API_KEY=sk-ant-...
-   ```
+### 1. Google Sheet
+1. Creá un Google Sheet vacío (ej.: "Recetas de Casa").
+2. **Extensiones → Apps Script**. Borrá lo que haya y pegá todo el archivo `apps-script/Codigo.gs`.
+3. En la línea `CLAVE_SECRETA`, reemplazá el texto por una frase larga inventada. Guardá (💾).
+4. **Implementar → Nueva implementación** → engranaje → **Aplicación web**.
+   - Ejecutar como: **Yo**
+   - Quién tiene acceso: **Cualquier usuario**
+5. Autorizá los permisos (Google avisa "app no verificada": *Configuración avanzada → Ir a…*).
+6. Copiá la **URL de la aplicación web** (termina en `/exec`).
 
-## 3. Instalar y correr
+> Si después cambiás el código del script: *Implementar → Administrar implementaciones → editar → Versión nueva*.
 
-```
+### 2. API key de Anthropic
+En [console.anthropic.com](https://console.anthropic.com) → *API Keys* → crear una. Cargá algo de crédito (cada receta cuesta centavos de dólar).
+
+### 3. Vercel
+1. En Vercel: **Add New → Project** → importá este repositorio (`recetas-app`). Si ya estaba conectado, se actualiza solo.
+2. En **Settings → Environment Variables** cargá:
+
+| Variable | Valor |
+|---|---|
+| `ANTHROPIC_API_KEY` | la key del paso 2 |
+| `APP_PASSWORD` | la clave de la casa (la que van a escribir en el celu) |
+| `SHEETS_URL` | la URL `/exec` del paso 1 |
+| `SHEETS_SECRET` | la misma frase que pusiste en `CLAVE_SECRETA` |
+
+3. **Deployments → Redeploy** para que tome las variables.
+
+### 4. Instalar en los celulares
+- **Android (Chrome)**: abrí la app → menú ⋮ → **Agregar a pantalla principal / Instalar**. Desde ahí, en Instagram: *Compartir → Recetas* y la receta se arma sola.
+- **iPhone (Safari)**: abrí la app → botón compartir → **Agregar a inicio**.
+  - Para compartir desde Instagram, creá un Atajo una vez: app **Atajos** → **+** → en ⓘ activá **Mostrar en hoja de compartir** (recibe *URL* y *Texto*) → agregá la acción **Abrir URL** con:
+    `https://TU-APP.vercel.app/?text=` + *Entrada del atajo* (usá la acción **Codificar URL** antes). Nombralo "Guardar receta".
+  - Si no querés el Atajo: copiá el link en Instagram y en la app tocá **Pegar**.
+
+## Límites conocidos
+- Instagram a veces no deja leer el posteo, o la receta está solo en el audio del video. En ese caso la app avisa: copiá la descripción del posteo o subí capturas.
+- La lista se guarda en el celu para verla sin conexión; para agregar o editar hace falta internet.
+
+## Probar en la compu (opcional)
+```bash
 npm install
-npm start
+cp .env.example .env.local   # completar valores
+npm start                    # http://localhost:3000
 ```
-
-La app queda en `http://localhost:3000`.
-
-## 4. Abrir desde el celu (misma wifi)
-
-1. En la PC, buscá tu IP local:
-   ```
-   ipconfig
-   ```
-   Buscá la línea "IPv4 Address" (algo como `192.168.0.15`).
-2. En el celu (conectado a la misma wifi), abrí en el navegador:
-   ```
-   http://192.168.0.15:3000
-   ```
-3. Tip: agregá la página a la pantalla de inicio del celu para que se sienta como una app.
+Sin `SHEETS_URL`, guarda en `datos-local.json` (solo para pruebas).

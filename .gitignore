@@ -1,3 +1,6 @@
 node_modules/
 .env
 .claude/
+datos-local.json
+.env.local
+.vercel
