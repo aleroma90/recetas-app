@@ -81,11 +81,16 @@ function mostrarVista(v) {
   window.scrollTo(0, 0);
   if (v !== 'cocina') soltarPantalla();
 }
-function ir(hash) { location.hash = hash; }
+function ir(hash) { estado.navegoEnApp = true; location.hash = hash; }
 
 function enrutar() {
   const h = location.hash.replace(/^#\/?/, '');
   const [ruta, id] = h.split('/');
+  // Después de guardar una receta nueva, "atrás" saltea las pantallas de carga y vuelve a la lista.
+  if (estado.flujoCerrado) {
+    if (['agregar', 'descubrir', 'editar'].includes(ruta)) return history.back();
+    if (ruta !== 'receta' && ruta !== 'cocina') estado.flujoCerrado = false;
+  }
   if (ruta === 'agregar') return mostrarVista('agregar');
   if (ruta === 'descubrir') return mostrarVista('descubrir');
   if (ruta === 'receta' && id) {
@@ -112,7 +117,10 @@ document.querySelectorAll('.volver').forEach((b) => b.addEventListener('click', 
   if (b.closest('#v-editar')) {
     const id = estado.borrador?.id;
     estado.borrador = null;
+    if (id && estado.editandoDesdeDetalle) { estado.editandoDesdeDetalle = false; return history.back(); }
     location.replace(id ? `#/receta/${id}` : estado.origen === 'descubrir' ? '#/descubrir' : '#/agregar');
+  } else if (estado.navegoEnApp) {
+    history.back();
   } else {
     location.replace('#/');
   }
@@ -654,7 +662,13 @@ $('#f-editar').addEventListener('submit', async (e) => {
     guardarLocal('recetas', estado.recetas);
     estado.borrador = null;
     toast('Receta guardada ✓');
-    location.replace(`#/receta/${guardada.id}`);
+    if (receta.id && estado.editandoDesdeDetalle) {
+      estado.editandoDesdeDetalle = false;
+      history.back(); // vuelve a la receta, ya actualizada
+    } else {
+      estado.flujoCerrado = !receta.id;
+      location.replace(`#/receta/${guardada.id}`);
+    }
   } catch (err) {
     toast(err.message);
   } finally {
@@ -798,7 +812,7 @@ $('#detalle').addEventListener('click', async (e) => {
 $('#detalle').addEventListener('change', (e) => {
   if (e.target.id === 'c-hecha') actualizarRapido({ hecha: e.target.checked });
 });
-$('#b-editar').addEventListener('click', () => ir(`#/editar/${estado.actual.id}`));
+$('#b-editar').addEventListener('click', () => { estado.editandoDesdeDetalle = true; ir(`#/editar/${estado.actual.id}`); });
 
 async function actualizarRapido(cambios) {
   const r = Object.assign(estado.actual, cambios);
