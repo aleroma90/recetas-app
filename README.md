@@ -6,6 +6,7 @@ App para el celu donde guardan las recetas que encuentran (Instagram, webs de re
 
 - **Agregar**: pegás un link (o lo compartís desde Instagram), y si hace falta un texto o capturas. La IA arma la ficha (ingredientes, pasos, tiempos, dificultad…) traducida al español y en gramos/°C. La revisás y guardás.
 - **Buscar**: texto libre + filtros, o el modo **"¿Qué cocino con lo que tengo?"**, que ordena las recetas por lo que te falta.
+- **Buscar recetas nuevas**: describís lo que querés ("algo con pollo, rápido, sin horno"), o desde una receta tocás *Buscar parecidas*, o desde "lo que tengo" buscás afuera con esos ingredientes. Busca primero recetas reales en internet; si no encuentra suficientes, la IA propone ideas propias (marcadas "Creada por IA"). Tocás una, se arma la ficha y la guardás.
 - **Receta**: ajustar porciones, modo cocina (la pantalla no se apaga), marcar "ya la hicimos" y puntaje.
 - **Datos**: se guardan en un Google Sheet (una fila por receta); se puede ver y corregir a mano.
 - **Acceso**: una clave compartida para la casa.
@@ -25,7 +26,8 @@ App para el celu donde guardan las recetas que encuentran (Instagram, webs de re
 > Si después cambiás el código del script: *Implementar → Administrar implementaciones → editar → Versión nueva*.
 
 ### 2. API key de Anthropic
-En [console.anthropic.com](https://console.anthropic.com) → *API Keys* → crear una. Cargá algo de crédito (cada receta cuesta centavos de dólar).
+En [console.anthropic.com](https://console.anthropic.com) → *API Keys* → crear una. Cargá algo de crédito (cada receta cuesta centavos de dólar; una búsqueda de recetas nuevas, algo más).
+Para que funcione la búsqueda en internet: en la consola, **Settings → Privacy** (o *Features*), activá **Web search**.
 
 ### 3. Vercel
 1. En Vercel: **Add New → Project** → importá este repositorio (`recetas-app`). Si ya estaba conectado, se actualiza solo.

@@ -80,7 +80,7 @@ function toast(msg) {
 }
 
 /* ================= Navegación ================= */
-const VISTAS = ['login', 'lista', 'agregar', 'editar', 'detalle', 'cocina'];
+const VISTAS = ['login', 'lista', 'agregar', 'descubrir', 'editar', 'detalle', 'cocina'];
 function mostrarVista(v) {
   VISTAS.forEach((n) => $(`#v-${n}`).classList.toggle('oculto', n !== v));
   window.scrollTo(0, 0);
@@ -93,6 +93,7 @@ function enrutar() {
   const h = location.hash.replace(/^#\/?/, '');
   const [ruta, id] = h.split('/');
   if (ruta === 'agregar') return mostrarVista('agregar');
+  if (ruta === 'descubrir') return mostrarVista('descubrir');
   if (ruta === 'receta' && id) {
     const r = estado.recetas.find((x) => x.id === id);
     if (!r) return ir('#/');
@@ -117,7 +118,7 @@ document.querySelectorAll('.volver').forEach((b) => b.addEventListener('click', 
   if (b.closest('#v-editar')) {
     const id = estado.borrador?.id;
     estado.borrador = null;
-    location.replace(id ? `#/receta/${id}` : '#/agregar');
+    location.replace(id ? `#/receta/${id}` : estado.origen === 'descubrir' ? '#/descubrir' : '#/agregar');
   } else {
     location.replace('#/');
   }
@@ -339,7 +340,7 @@ $('#lista').addEventListener('click', (e) => {
   const t = e.target.closest('.tarjeta');
   if (t) ir(`#/receta/${t.dataset.id}`);
 });
-$('#b-agregar').addEventListener('click', () => { limpiarAgregar(); ir('#/agregar'); });
+$('#b-agregar').addEventListener('click', () => { limpiarAgregar(); estado.origen = 'agregar'; ir('#/agregar'); });
 
 /* ================= Agregar ================= */
 function limpiarAgregar() {
@@ -440,6 +441,118 @@ function procesarCompartido() {
   location.hash = '#/agregar';
   if (url || resto) setTimeout(extraer, 300);
 }
+
+/* ================= Buscar recetas nuevas ================= */
+estado.descubrir = { contexto: '', resultados: [] };
+
+function abrirDescubrir(contexto = '', textoContexto = '') {
+  estado.descubrir = { contexto, resultados: [] };
+  $('#desc-contexto').textContent = textoContexto;
+  $('#desc-contexto').classList.toggle('oculto', !textoContexto);
+  $('#i-pedido').value = '';
+  $('#i-pedido').placeholder = contexto ? 'Opcional: algo más (ej: sin horno, para 2, más liviana)' : 'Ej: algo con pollo, rápido, sin horno, para 4';
+  $('#desc-error').textContent = '';
+  $('#desc-resumen').textContent = '';
+  $('#desc-lista').innerHTML = '';
+  estado.origen = 'descubrir';
+  ir('#/descubrir');
+  if (contexto) setTimeout(buscarNuevas, 100);
+}
+
+$('#b-descubrir').addEventListener('click', () => abrirDescubrir());
+$('#b-descubrir-tengo').addEventListener('click', () => {
+  if (!estado.tengo.length) return toast('Primero agregá los ingredientes que tenés.');
+  const lista = estado.tengo.join(', ');
+  abrirDescubrir(
+    `Recetas que se puedan hacer principalmente con estos ingredientes que tengo: ${lista}. Que falten la menor cantidad posible de otros ingredientes${estado.basicos ? ' (sal, aceite, agua, pimienta y azúcar los tengo)' : ''}.`,
+    `Con lo que tenés: ${lista}`
+  );
+});
+
+function contextoSimilar(r) {
+  const ings = (r.ingredientes || []).map((i) => i.base || i.nombre).slice(0, 12).join(', ');
+  const tipo = [...(r.tipo_plato || []).map((x) => NOMBRES.tipo_plato[x]), NOMBRES.sabor[r.sabor], r.cocina].filter(Boolean).join(', ');
+  return `Recetas parecidas a "${r.titulo}" (${tipo}; ingredientes principales: ${ings}). Que no sean la misma receta.`;
+}
+
+async function buscarNuevas() {
+  const extra = $('#i-pedido').value.trim();
+  const ctx = estado.descubrir.contexto;
+  if (!ctx && !extra) {
+    $('#desc-error').textContent = 'Contame qué tenés ganas de cocinar.';
+    return;
+  }
+  const pedido = ctx ? [ctx, extra && `Además: ${extra}`].filter(Boolean).join('\n') : extra;
+  $('#desc-error').textContent = '';
+  cargando(true, 'Buscando recetas en internet… (puede tardar hasta un minuto)');
+  try {
+    const { resultados } = await api('/api/descubrir', { method: 'POST', body: { pedido } });
+    estado.descubrir.resultados = resultados;
+    estado.descubrir.pedido = pedido;
+    pintarResultados();
+  } catch (err) {
+    $('#desc-error').textContent = err.message;
+  } finally {
+    cargando(false);
+  }
+}
+$('#b-buscar-nuevas').addEventListener('click', buscarNuevas);
+
+function pintarResultados() {
+  const res = estado.descubrir.resultados;
+  const web = res.filter((r) => r.origen === 'web').length;
+  $('#desc-resumen').textContent = !res.length ? 'No encontré nada. Probá describirlo distinto.'
+    : web ? `Encontré ${web} en internet${res.length > web ? ' y te propongo ideas propias' : ''}. Tocá una para verla completa y guardarla.`
+    : 'No encontré recetas en internet que encajen, así que te armé estas ideas. Tocá una para verla completa.';
+  $('#desc-lista').innerHTML = res.map((r, i) => `
+    <button class="tarjeta resultado" data-i="${i}">
+      <span class="badge ${r.origen === 'ia' ? 'ia' : ''}">${r.origen === 'ia' ? '✨ Idea creada por IA' : '🌐 ' + esc(r.fuente || 'Web')}</span>
+      <h2>${esc(r.titulo)}</h2>
+      <p class="sutil">${esc(r.descripcion)}</p>
+      <div class="datos">
+        ${r.tiempo_total_min != null ? `<span>⏱ ${duracion(r.tiempo_total_min)}</span>` : ''}
+        <span>${NOMBRES.dificultad[r.dificultad] || ''}</span>
+        <span>${NOMBRES.sabor[r.sabor] || ''}</span>
+      </div>
+      ${r.por_que ? `<p class="porque">✓ ${esc(r.por_que)}</p>` : ''}
+    </button>`).join('');
+}
+
+async function crearConIa(r) {
+  const { receta } = await api('/api/crear', {
+    method: 'POST',
+    body: { titulo: r.titulo, descripcion: r.descripcion, pedido: estado.descubrir.pedido },
+  });
+  return receta;
+}
+
+$('#desc-lista').addEventListener('click', async (e) => {
+  const t = e.target.closest('.resultado');
+  if (!t) return;
+  const r = estado.descubrir.resultados[Number(t.dataset.i)];
+  try {
+    if (r.origen === 'web' && r.url) {
+      cargando(true, `Leyendo la receta de ${r.fuente || 'la web'}…`);
+      try {
+        estado.borrador = (await api('/api/extraer', { method: 'POST', body: { url: r.url } })).receta;
+      } catch (err) {
+        cargando(false);
+        if (!confirm('No pude leer esa página. ¿Querés que la IA arme una receta parecida?')) return;
+        cargando(true, 'Armando la receta…');
+        estado.borrador = { ...(await crearConIa(r)), url_origen: r.url };
+      }
+    } else {
+      cargando(true, 'Armando la receta…');
+      estado.borrador = await crearConIa(r);
+    }
+    estado.origen = 'descubrir';
+    ir('#/editar');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    cargando(false);
+  }
+});
 
 /* ================= Editor ================= */
 function chipsToggle(nombre, valores) {
@@ -642,6 +755,7 @@ function abrirDetalle(r) {
       ${r.descripcion ? `<p class="sutil" style="margin:0">${esc(r.descripcion)}</p>` : ''}
       <div class="etiquetas">
         ${dietas.map((d) => `<span class="etiqueta verde">${esc(d)}</span>`).join('')}
+        ${r.fuente === 'Creada por IA' ? '<span class="etiqueta verde">✨ Creada por IA</span>' : ''}
         ${chips.map((c) => `<span class="etiqueta">${esc(c)}</span>`).join('')}
       </div>
       <div class="stats">
@@ -671,6 +785,7 @@ function abrirDetalle(r) {
 
       <div class="acciones">
         ${r.url_origen ? `<a class="btn secundario" href="${esc(r.url_origen)}" target="_blank" rel="noopener">Ver original${r.fuente ? ` en ${esc(r.fuente)}` : ''} ↗</a>` : ''}
+        <button id="b-similares" class="btn secundario">🔎 Buscar recetas parecidas</button>
         <button id="b-compartir" class="btn secundario">Compartir receta</button>
       </div>
     </div>`;
@@ -692,6 +807,8 @@ $('#detalle').addEventListener('click', async (e) => {
   } else if (b.id === 'b-cocinar') {
     estado.cocinaPaso = 0;
     ir('#/cocina');
+  } else if (b.id === 'b-similares') {
+    abrirDescubrir(contextoSimilar(r), `Parecidas a: ${r.titulo}`);
   } else if (b.id === 'b-compartir') {
     compartir(r);
   }

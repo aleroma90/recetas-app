@@ -3,7 +3,7 @@ const crypto = require('crypto');
 require('dotenv').config({ path: ['.env.local', '.env'] });
 const express = require('express');
 const { leerLink } = require('./lib/fuentes');
-const { extraerReceta } = require('./lib/ia');
+const { extraerReceta, buscarRecetas, crearReceta } = require('./lib/ia');
 const sheets = require('./lib/sheets');
 
 const app = express();
@@ -77,6 +77,31 @@ app.post('/api/extraer', protegido, async (req, res) => {
   } catch (err) {
     console.error('extraer', err);
     res.status(500).json({ error: 'No se pudo procesar la receta. Probá de nuevo en un rato.' });
+  }
+});
+
+// --- Buscar recetas nuevas (web + ideas de IA) ---
+app.post('/api/descubrir', protegido, async (req, res) => {
+  const pedido = String(req.body?.pedido || '').trim().slice(0, 2000);
+  if (!pedido) return res.status(400).json({ error: 'Contame qué tenés ganas de cocinar.' });
+  try {
+    res.json({ resultados: await buscarRecetas(pedido) });
+  } catch (err) {
+    console.error('descubrir', err);
+    res.status(500).json({ error: 'No pude buscar recetas ahora. Probá de nuevo en un rato.' });
+  }
+});
+
+app.post('/api/crear', protegido, async (req, res) => {
+  const { titulo = '', descripcion = '', pedido = '' } = req.body || {};
+  if (!titulo) return res.status(400).json({ error: 'Falta la idea de receta.' });
+  try {
+    const receta = await crearReceta({ titulo, descripcion, pedido });
+    delete receta.es_receta;
+    res.json({ receta: { ...receta, url_origen: '', fuente: 'Creada por IA', imagen: '' } });
+  } catch (err) {
+    console.error('crear', err);
+    res.status(500).json({ error: 'No pude armar la receta. Probá de nuevo.' });
   }
 });
 

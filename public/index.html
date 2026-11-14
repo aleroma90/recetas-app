@@ -34,6 +34,9 @@
       <h1>Recetas de Casa</h1>
       <button id="b-recargar" class="icono" aria-label="Actualizar">⟳</button>
     </header>
+    <div class="nuevas-wrap">
+      <button id="b-descubrir" class="btn nuevas">🔎 Buscar recetas nuevas</button>
+    </div>
 
     <div class="buscador">
       <input id="i-buscar" type="search" placeholder="Buscar receta o ingrediente…" autocomplete="off">
@@ -52,6 +55,7 @@
         <input id="i-tengo" type="text" placeholder="Ej: huevo, papa, queso… (Enter)" autocomplete="off" enterkeyhint="done">
       </div>
       <label class="check"><input id="c-basicos" type="checkbox" checked> Dar por hecho sal, aceite, agua, pimienta y azúcar</label>
+      <button id="b-descubrir-tengo" class="btn secundario chico ancho">🔎 Buscar recetas nuevas con estos ingredientes</button>
     </div>
 
     <div id="panel-filtros" class="panel oculto"></div>
@@ -60,7 +64,7 @@
     <div id="lista" class="lista"></div>
     <div id="vacio" class="vacio oculto">
       <p>Todavía no hay recetas.</p>
-      <p class="sutil">Tocá <b>+</b> para agregar la primera.</p>
+      <p class="sutil">Tocá <b>+</b> para agregar una que ya tengas, o <b>Buscar recetas nuevas</b> para encontrar ideas.</p>
     </div>
 
     <button id="b-agregar" class="fab" aria-label="Agregar receta">+</button>
@@ -93,6 +97,24 @@
       <p id="agregar-error" class="error"></p>
       <button id="b-extraer" class="btn primario grande">✨ Armar receta</button>
       <button id="b-manual" class="btn link">Cargar a mano</button>
+    </div>
+  </section>
+
+  <!-- Buscar recetas nuevas -->
+  <section id="v-descubrir" class="vista oculto">
+    <header class="barra">
+      <button class="icono volver" aria-label="Volver">←</button>
+      <h1>Buscar recetas nuevas</h1>
+      <span></span>
+    </header>
+    <div class="contenido">
+      <div id="desc-contexto" class="aviso oculto"></div>
+      <label class="etq" for="i-pedido">¿Qué tenés ganas de cocinar?</label>
+      <textarea id="i-pedido" rows="3" placeholder="Ej: algo con pollo, rápido, sin horno, para 4"></textarea>
+      <p id="desc-error" class="error"></p>
+      <button id="b-buscar-nuevas" class="btn primario grande">🔎 Buscar</button>
+      <p id="desc-resumen" class="sutil resumen" style="padding:0"></p>
+      <div id="desc-lista" class="lista" style="padding:0 0 32px"></div>
     </div>
   </section>
 

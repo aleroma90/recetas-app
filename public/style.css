@@ -212,3 +212,14 @@ textarea { resize: vertical; }
   background: var(--texto); color: var(--fondo); padding: 12px 18px; border-radius: 12px; z-index: 110;
   max-width: calc(100vw - 32px); font-size: 15px;
 }
+
+/* Buscar recetas nuevas */
+.nuevas-wrap { padding: 0 16px 8px; }
+.btn.nuevas { width: 100%; background: var(--tarjeta); border: 1.5px dashed var(--primario); color: var(--primario); }
+.btn.ancho { width: 100%; margin-top: 10px; white-space: normal; }
+.resultado { flex-direction: column; gap: 6px; padding: 12px 14px; }
+.resultado h2 { font-size: 17px; }
+.resultado p { margin: 0; font-size: 15px; }
+.resultado .porque { font-size: 13px; color: var(--verde); }
+.badge { align-self: flex-start; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; background: var(--suave); color: var(--primario); }
+.badge.ia { background: var(--verde-suave); color: var(--verde); }
