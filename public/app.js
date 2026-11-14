@@ -49,15 +49,10 @@ function leerLocal(k, def) { try { const v = localStorage.getItem(k); return v ?
 async function api(ruta, { method = 'GET', body } = {}) {
   const res = await fetch(ruta, {
     method,
-    headers: { 'Content-Type': 'application/json', 'x-clave': leerLocal('clave', '') },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && ruta !== '/api/login') {
-    guardarLocal('clave', '');
-    mostrarVista('login');
-    throw new Error('Clave incorrecta');
-  }
   if (!res.ok) {
     const e = new Error(data.error || 'Algo salió mal');
     e.datos = data;
@@ -80,7 +75,7 @@ function toast(msg) {
 }
 
 /* ================= Navegación ================= */
-const VISTAS = ['login', 'lista', 'agregar', 'descubrir', 'editar', 'detalle', 'cocina'];
+const VISTAS = ['lista', 'agregar', 'descubrir', 'editar', 'detalle', 'cocina'];
 function mostrarVista(v) {
   VISTAS.forEach((n) => $(`#v-${n}`).classList.toggle('oculto', n !== v));
   window.scrollTo(0, 0);
@@ -89,7 +84,6 @@ function mostrarVista(v) {
 function ir(hash) { location.hash = hash; }
 
 function enrutar() {
-  if (!leerLocal('clave', '')) return mostrarVista('login');
   const h = location.hash.replace(/^#\/?/, '');
   const [ruta, id] = h.split('/');
   if (ruta === 'agregar') return mostrarVista('agregar');
@@ -124,22 +118,6 @@ document.querySelectorAll('.volver').forEach((b) => b.addEventListener('click', 
   }
 }));
 
-/* ================= Login ================= */
-$('#f-login').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const clave = $('#i-clave').value;
-  $('#login-error').textContent = '';
-  try {
-    await api('/api/login', { method: 'POST', body: { clave } });
-    guardarLocal('clave', clave);
-    await cargarRecetas();
-    procesarCompartido();
-    enrutar();
-  } catch (err) {
-    $('#login-error').textContent = err.message;
-  }
-});
-
 /* ================= Recetas ================= */
 async function cargarRecetas(silencioso) {
   if (!silencioso) cargando(true, 'Trayendo recetas…');
@@ -148,7 +126,7 @@ async function cargarRecetas(silencioso) {
     estado.recetas = recetas || [];
     guardarLocal('recetas', estado.recetas);
   } catch (err) {
-    if (err.message !== 'Clave incorrecta') toast('Sin conexión: muestro lo último guardado.');
+    toast('Sin conexión: muestro lo último guardado.');
   } finally {
     cargando(false);
   }
@@ -890,12 +868,8 @@ $('#b-salir-cocina').addEventListener('click', () => history.back());
   estado.tengo = leerLocal('tengo', []);
   estado.filtros = { ...estado.filtros, ...leerLocal('filtros', {}) };
   pintarTengo();
-  if (leerLocal('clave', '')) {
-    enrutar();
-    await cargarRecetas(estado.recetas.length > 0);
-    procesarCompartido();
-    enrutar();
-  } else {
-    mostrarVista('login');
-  }
+  enrutar();
+  await cargarRecetas(estado.recetas.length > 0);
+  procesarCompartido();
+  enrutar();
 })();

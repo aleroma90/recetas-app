@@ -9,7 +9,7 @@ Usuario: Ale (no lee código). Español rioplatense en todo, explicaciones simpl
 - Mobile first, responsive siempre. Pocas dependencias.
 
 ## Estructura
-- `server.js` — Express (Vercel lo detecta solo). Rutas `/api/*`, clave de la casa en header `x-clave`.
+- `server.js` — Express (Vercel lo detecta solo). Rutas `/api/*`, sin clave de acceso.
 - `lib/fuentes.js` — lee links (JSON-LD schema.org/Recipe en webs; embed de Instagram).
 - `lib/ia.js` — Claude con salida JSON estructurada (esquema de receta). `buscarRecetas`: web_search + paso de ordenado (web primero, ideas IA si hay < 2). `crearReceta`: receta completa desde una idea.
 - `lib/sheets.js` — habla con el Apps Script; sin `SHEETS_URL` usa `datos-local.json`.

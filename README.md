@@ -9,7 +9,7 @@ App para el celu donde guardan las recetas que encuentran (Instagram, webs de re
 - **Buscar recetas nuevas**: describís lo que querés ("algo con pollo, rápido, sin horno"), o desde una receta tocás *Buscar parecidas*, o desde "lo que tengo" buscás afuera con esos ingredientes. Busca primero recetas reales en internet; si no encuentra suficientes, la IA propone ideas propias (marcadas "Creada por IA"). Tocás una, se arma la ficha y la guardás.
 - **Receta**: ajustar porciones, modo cocina (la pantalla no se apaga), marcar "ya la hicimos" y puntaje.
 - **Datos**: se guardan en un Google Sheet (una fila por receta); se puede ver y corregir a mano.
-- **Acceso**: una clave compartida para la casa.
+- **Acceso**: sin clave; cualquiera con el link puede usarla (no compartir el link fuera de casa).
 
 ## Puesta en marcha (una sola vez, ~15 min)
 
@@ -36,7 +36,6 @@ Para que funcione la búsqueda en internet: en la consola, **Settings → Privac
 | Variable | Valor |
 |---|---|
 | `ANTHROPIC_API_KEY` | la key del paso 2 |
-| `APP_PASSWORD` | la clave de la casa (la que van a escribir en el celu) |
 | `SHEETS_URL` | la URL `/exec` del paso 1 |
 | `SHEETS_SECRET` | la misma frase que pusiste en `CLAVE_SECRETA` |
 

@@ -1,5 +1,4 @@
 const path = require('path');
-const crypto = require('crypto');
 require('dotenv').config({ path: ['.env.local', '.env'] });
 const express = require('express');
 const { leerLink } = require('./lib/fuentes');
@@ -10,29 +9,8 @@ const app = express();
 app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Clave de la casa ---
-function mismaClave(a, b) {
-  const ha = crypto.createHash('sha256').update(String(a)).digest();
-  const hb = crypto.createHash('sha256').update(String(b)).digest();
-  return crypto.timingSafeEqual(ha, hb);
-}
-
-function protegido(req, res, next) {
-  const clave = process.env.APP_PASSWORD;
-  if (!clave) return res.status(500).json({ error: 'Falta configurar APP_PASSWORD en Vercel.' });
-  if (!mismaClave(req.get('x-clave') || '', clave)) return res.status(401).json({ error: 'Clave incorrecta' });
-  next();
-}
-
-app.post('/api/login', (req, res) => {
-  const clave = process.env.APP_PASSWORD;
-  if (!clave) return res.status(500).json({ error: 'Falta configurar APP_PASSWORD en Vercel.' });
-  if (!mismaClave(req.body?.clave || '', clave)) return res.status(401).json({ error: 'Clave incorrecta' });
-  res.json({ ok: true });
-});
-
 // --- Extraer receta con IA ---
-app.post('/api/extraer', protegido, async (req, res) => {
+app.post('/api/extraer', async (req, res) => {
   const { url = '', texto = '', imagenes = [] } = req.body || {};
   if (!url && !texto.trim() && !imagenes.length) {
     return res.status(400).json({ error: 'Pegá un link, un texto o subí una captura.' });
@@ -81,7 +59,7 @@ app.post('/api/extraer', protegido, async (req, res) => {
 });
 
 // --- Buscar recetas nuevas (web + ideas de IA) ---
-app.post('/api/descubrir', protegido, async (req, res) => {
+app.post('/api/descubrir', async (req, res) => {
   const pedido = String(req.body?.pedido || '').trim().slice(0, 2000);
   if (!pedido) return res.status(400).json({ error: 'Contame qué tenés ganas de cocinar.' });
   try {
@@ -92,7 +70,7 @@ app.post('/api/descubrir', protegido, async (req, res) => {
   }
 });
 
-app.post('/api/crear', protegido, async (req, res) => {
+app.post('/api/crear', async (req, res) => {
   const { titulo = '', descripcion = '', pedido = '' } = req.body || {};
   if (!titulo) return res.status(400).json({ error: 'Falta la idea de receta.' });
   try {
@@ -106,7 +84,7 @@ app.post('/api/crear', protegido, async (req, res) => {
 });
 
 // --- Recetas (Google Sheet) ---
-app.get('/api/recetas', protegido, async (_req, res) => {
+app.get('/api/recetas', async (_req, res) => {
   try {
     res.json({ recetas: await sheets.listar() });
   } catch (err) {
@@ -115,7 +93,7 @@ app.get('/api/recetas', protegido, async (_req, res) => {
   }
 });
 
-app.post('/api/recetas', protegido, async (req, res) => {
+app.post('/api/recetas', async (req, res) => {
   try {
     res.json({ receta: await sheets.guardar(req.body.receta) });
   } catch (err) {
@@ -124,7 +102,7 @@ app.post('/api/recetas', protegido, async (req, res) => {
   }
 });
 
-app.delete('/api/recetas/:id', protegido, async (req, res) => {
+app.delete('/api/recetas/:id', async (req, res) => {
   try {
     res.json({ ok: await sheets.borrar(req.params.id) });
   } catch (err) {
