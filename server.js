@@ -63,7 +63,10 @@ app.post('/api/descubrir', async (req, res) => {
   const pedido = String(req.body?.pedido || '').trim().slice(0, 2000);
   if (!pedido) return res.status(400).json({ error: 'Contame qué tenés ganas de cocinar.' });
   try {
-    res.json({ resultados: await buscarRecetas(pedido) });
+    const excluir = (Array.isArray(req.body?.excluir) ? req.body.excluir : []).map(String).slice(0, 60);
+    const v = Number(req.body?.variedad);
+    const variedad = Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : null;
+    res.json({ resultados: await buscarRecetas(pedido, { excluir, variedad }) });
   } catch (err) {
     console.error('descubrir', err);
     res.status(500).json({ error: 'No pude buscar recetas ahora. Probá de nuevo en un rato.' });

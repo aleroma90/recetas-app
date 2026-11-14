@@ -11,7 +11,7 @@ Usuario: Ale (no lee código). Español rioplatense en todo, explicaciones simpl
 ## Estructura
 - `server.js` — Express (Vercel lo detecta solo). Rutas `/api/*`, sin clave de acceso.
 - `lib/fuentes.js` — lee links (JSON-LD schema.org/Recipe en webs; embed de Instagram).
-- `lib/ia.js` — Claude con salida JSON estructurada (esquema de receta). `buscarRecetas`: web_search + paso de ordenado (web primero, ideas IA si hay < 2). `crearReceta`: receta completa desde una idea.
+- `lib/ia.js` — Claude con salida JSON estructurada (esquema de receta). `buscarRecetas`: web_search + paso de ordenado (web primero, ideas IA si hay < 2); acepta `excluir` (ya mostradas) y `variedad` 0-100 para "Buscar 5 más". `crearReceta`: receta completa desde una idea.
 - `lib/sheets.js` — habla con el Apps Script; sin `SHEETS_URL` usa `datos-local.json`.
 - `apps-script/Codigo.gs` — se pega en el Google Sheet (hoja "Recetas").
 - `public/` — app web vanilla JS (PWA con share target).

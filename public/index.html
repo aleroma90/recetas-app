@@ -106,7 +106,14 @@
       <p id="desc-error" class="error"></p>
       <button id="b-buscar-nuevas" class="btn primario grande">🔎 Buscar</button>
       <p id="desc-resumen" class="sutil resumen" style="padding:0"></p>
-      <div id="desc-lista" class="lista" style="padding:0 0 32px"></div>
+      <div id="desc-lista" class="lista" style="padding:0 0 16px"></div>
+      <div id="desc-mas" class="panel mas oculto">
+        <label class="etq" for="r-variedad">¿Querés ver 5 más?</label>
+        <input id="r-variedad" type="range" min="0" max="100" step="1" value="30">
+        <div class="rango-etq"><span>En la misma línea</span><span>Más variedad</span></div>
+        <p id="variedad-txt" class="variedad-txt"></p>
+        <button id="b-mas" class="btn primario grande">🔎 Buscar 5 más</button>
+      </div>
     </div>
   </section>
 

@@ -219,3 +219,9 @@ textarea { resize: vertical; }
 .resultado .porque { font-size: 13px; color: var(--verde); }
 .badge { align-self: flex-start; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; background: var(--suave); color: var(--primario); }
 .badge.ia { background: var(--verde-suave); color: var(--verde); }
+
+/* Buscar más con variedad */
+.panel.mas { margin: 0 0 32px; }
+.mas input[type=range] { width: 100%; accent-color: var(--primario); height: 32px; margin-top: 4px; }
+.rango-etq { display: flex; justify-content: space-between; font-size: 13px; color: var(--sutil); }
+.variedad-txt { font-size: 14px; margin: 8px 0 0; min-height: 2.8em; }

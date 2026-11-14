@@ -444,6 +444,7 @@ function abrirDescubrir(contexto = '', textoContexto = '') {
   $('#desc-error').textContent = '';
   $('#desc-resumen').textContent = '';
   $('#desc-lista').innerHTML = '';
+  $('#desc-mas').classList.add('oculto');
   estado.origen = 'descubrir';
   ir('#/descubrir');
   if (contexto) setTimeout(buscarNuevas, 100);
@@ -488,12 +489,52 @@ async function buscarNuevas() {
 }
 $('#b-buscar-nuevas').addEventListener('click', buscarNuevas);
 
+/* Buscar 5 más, eligiendo cuánto alejarse del pedido */
+const VARIEDAD_TXT = [
+  [20, 'Muy parecidas: mismo plato con pequeños cambios.'],
+  [40, 'Parecidas: la misma idea con alguna variación.'],
+  [60, 'Intermedio: mismo estilo, puede cambiar el ingrediente principal o la técnica.'],
+  [80, 'Variadas: inspiradas en la búsqueda, pero claramente distintas.'],
+  [100, 'Muy variadas: opciones sorpresa que solo respetan lo indispensable.'],
+];
+function pintarVariedad() {
+  const v = Number($('#r-variedad').value);
+  $('#variedad-txt').textContent = VARIEDAD_TXT.find(([max]) => v <= max)[1];
+}
+$('#r-variedad').value = leerLocal('variedad', 30);
+pintarVariedad();
+$('#r-variedad').addEventListener('input', () => { pintarVariedad(); guardarLocal('variedad', Number($('#r-variedad').value)); });
+
+$('#b-mas').addEventListener('click', async () => {
+  const d = estado.descubrir;
+  const antes = d.resultados.length;
+  const excluir = d.resultados.map((r) => [r.titulo, r.fuente].filter(Boolean).join(' — '));
+  cargando(true, 'Buscando 5 recetas más… (puede tardar hasta un minuto)');
+  try {
+    const { resultados } = await api('/api/descubrir', {
+      method: 'POST',
+      body: { pedido: d.pedido, excluir, variedad: Number($('#r-variedad').value) },
+    });
+    const vistos = new Set(d.resultados.map((r) => r.url || norm(r.titulo)));
+    const nuevos = resultados.filter((r) => !vistos.has(r.url || norm(r.titulo)));
+    if (!nuevos.length) return toast('No encontré otras distintas. Probá moviendo la barra hacia "Más variedad".');
+    d.resultados.push(...nuevos);
+    pintarResultados();
+    document.querySelector(`.resultado[data-i="${antes}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    cargando(false);
+  }
+});
+
 function pintarResultados() {
   const res = estado.descubrir.resultados;
   const web = res.filter((r) => r.origen === 'web').length;
   $('#desc-resumen').textContent = !res.length ? 'No encontré nada. Probá describirlo distinto.'
     : web ? `Encontré ${web} en internet${res.length > web ? ' y te propongo ideas propias' : ''}. Tocá una para verla completa y guardarla.`
     : 'No encontré recetas en internet que encajen, así que te armé estas ideas. Tocá una para verla completa.';
+  $('#desc-mas').classList.toggle('oculto', !res.length);
   $('#desc-lista').innerHTML = res.map((r, i) => `
     <button class="tarjeta resultado" data-i="${i}">
       <span class="badge ${r.origen === 'ia' ? 'ia' : ''}">${r.origen === 'ia' ? '✨ Idea creada por IA' : '🌐 ' + esc(r.fuente || 'Web')}</span>

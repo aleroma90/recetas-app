@@ -1,5 +1,5 @@
 // Service worker mínimo: permite instalar la app y abrirla sin conexión.
-const CACHE = 'recetas-v5';
+const CACHE = 'recetas-v6';
 const ARCHIVOS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
