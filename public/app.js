@@ -707,15 +707,27 @@ function leerEditor() {
     const o = orig[Number(fila.dataset.idx)] || {};
     const nombre = g('nombre');
     const cant = g('cantidad').replace(',', '.');
+    const cantidad = cant === '' || isNaN(Number(cant)) ? null : Number(cant);
+    const unidad = g('unidad');
+    // La equivalencia sigue a la cantidad si se cambió a mano; si cambió la unidad, se recalcula después.
+    let equiv = o.equiv_cantidad ?? null;
+    if (equiv != null && o.cantidad && cantidad != null && cantidad !== o.cantidad) equiv = (equiv * cantidad) / o.cantidad;
+    if (unidad !== (o.unidad || '') || cantidad == null) equiv = null;
     return {
-      cantidad: cant === '' || isNaN(Number(cant)) ? null : Number(cant),
-      unidad: g('unidad'),
-      nombre,
+      cantidad, unidad, nombre,
       base: o.nombre === nombre && o.base ? o.base : nombre.toLowerCase(),
       nota: g('nota'),
       grupo: o.grupo || '',
+      equiv_cantidad: equiv,
+      equiv_unidad: equiv != null ? o.equiv_unidad || '' : '',
+      pasos: o.pasos,
     };
   }).filter((i) => i.nombre);
+  // Si cambiaron los pasos o hay ingredientes nuevos, se vuelve a calcular en qué paso va cada uno.
+  const pasos = [...f.querySelectorAll('[name=paso]')].map((t) => t.value.trim()).filter(Boolean);
+  if (JSON.stringify(pasos) !== JSON.stringify(estado.borrador.pasos || []) || ingredientes.some((i) => !Array.isArray(i.pasos))) {
+    ingredientes.forEach((i) => delete i.pasos);
+  }
   return {
     ...estado.borrador,
     titulo: v('titulo'), descripcion: v('descripcion'), porciones: num('porciones'),
@@ -723,7 +735,7 @@ function leerEditor() {
     dificultad: v('dificultad'), sabor: v('sabor'),
     tipo_plato: chips('tipo_plato'), metodo: chips('metodo'), dietas: chips('dietas'),
     cocina: v('cocina'), etiquetas: v('etiquetas').split(',').map((s) => s.trim()).filter(Boolean),
-    ingredientes, pasos: [...f.querySelectorAll('[name=paso]')].map((t) => t.value.trim()).filter(Boolean),
+    ingredientes, pasos,
     tips: v('tips'), imagen: v('imagen'), url_origen: v('url_origen'),
   };
 }
@@ -791,10 +803,34 @@ function formatoCant(n, unidad) {
   const [, sim] = FRACC.reduce((a, b) => (Math.abs(b[0] - dec) < Math.abs(a[0] - dec) ? b : a));
   return ent ? `${ent} ${sim}` : sim;
 }
+function plural(unidad, n) {
+  if (n > 1 && /^taza$/i.test(unidad)) return unidad + 's';
+  if (n <= 1 && /^tazas$/i.test(unidad)) return unidad.slice(0, -1);
+  return unidad;
+}
 function textoIng(i, factor) {
-  const cant = i.cantidad != null ? formatoCant(i.cantidad * factor, i.unidad) : '';
-  const unidad = /^unidad(es)?$/i.test(i.unidad || '') ? '' : i.unidad;
-  return { cant: [cant, unidad].filter(Boolean).join(' '), resto: i.nombre + (i.nota ? `, ${i.nota}` : '') };
+  const n = i.cantidad != null ? i.cantidad * factor : null;
+  const cant = n != null ? formatoCant(n, i.unidad) : '';
+  const unidad = /^unidad(es)?$/i.test(i.unidad || '') ? '' : plural(i.unidad || '', n);
+  let equiv = '';
+  if (i.equiv_cantidad != null && i.equiv_unidad && n != null) {
+    const e = i.equiv_cantidad * factor;
+    equiv = `≈ ${formatoCant(e, i.equiv_unidad)} ${plural(i.equiv_unidad, e)}`;
+  }
+  return { cant: [cant, unidad].filter(Boolean).join(' '), resto: i.nombre + (i.nota ? `, ${i.nota}` : ''), equiv };
+}
+function lineaIng(i, factor) {
+  const t = textoIng(i, factor);
+  return [t.cant, t.resto].filter(Boolean).join(' ') + (t.equiv ? ` (${t.equiv})` : '');
+}
+// Ingredientes que se usan en el paso n (empezando en 1).
+function ingsDelPaso(r, n) {
+  return (r.ingredientes || []).filter((i) => Array.isArray(i.pasos) && i.pasos.includes(n));
+}
+function htmlIngsPaso(r, n, factor) {
+  const ings = ingsDelPaso(r, n);
+  if (!ings.length) return '';
+  return `<ul class="ings-paso">${ings.map((i) => `<li>${esc(lineaIng(i, factor))}</li>`).join('')}</ul>`;
 }
 function listaIngredientes(r, factor) {
   let grupo = '';
@@ -803,12 +839,35 @@ function listaIngredientes(r, factor) {
     if (i.grupo && i.grupo !== grupo) { grupo = i.grupo; h += `<li class="grupo">${esc(grupo)}</li>`; }
     const t = textoIng(i, factor);
     const tengo = estado.modoTengo && estado.tengo.some((x) => coincide(i, x));
-    return h + `<li class="${tengo ? 'tengo' : ''}"><span class="cant">${esc(t.cant)}</span><span>${esc(t.resto)}</span></li>`;
+    return h + `<li class="${tengo ? 'tengo' : ''}"><span class="cant">${esc(t.cant)}</span><span>${esc(t.resto)}${t.equiv ? ` <span class="equiv">(${esc(t.equiv)})</span>` : ''}</span></li>`;
   }).join('');
+}
+
+const enriqueciendo = new Set();
+async function completarSiFalta(r) {
+  if (!r.id || !(r.ingredientes || []).length || !(r.pasos || []).length) return;
+  if (r.ingredientes.every((i) => Array.isArray(i.pasos)) || enriqueciendo.has(r.id)) return;
+  enriqueciendo.add(r.id);
+  try {
+    const { ingredientes } = await api('/api/enriquecer', { method: 'POST', body: { receta: r } });
+    r.ingredientes = r.ingredientes.map((i, n) => ({ ...i, ...ingredientes[n] }));
+    await api('/api/recetas', { method: 'POST', body: { receta: r } });
+    guardarLocal('recetas', estado.recetas);
+    if (estado.actual?.id === r.id) {
+      const y = window.scrollY;
+      if (!$('#v-detalle').classList.contains('oculto')) { abrirDetalle(r); window.scrollTo(0, y); }
+      if (!$('#v-cocina').classList.contains('oculto')) pintarCocina();
+    }
+  } catch (err) {
+    console.warn('No se pudo completar la receta', err.message);
+  } finally {
+    enriqueciendo.delete(r.id);
+  }
 }
 
 function abrirDetalle(r) {
   estado.actual = r;
+  completarSiFalta(r);
   if (estado.porciones == null || estado.porcionesDe !== r.id) {
     estado.porciones = r.porciones || null;
     estado.porcionesDe = r.id;
@@ -848,7 +907,7 @@ function abrirDetalle(r) {
         <ul class="ingredientes">${listaIngredientes(r, factor)}</ul>
       </div>
 
-      <div class="seccion"><h2>Preparación</h2><ol class="pasos">${(r.pasos || []).map((p) => `<li><span>${esc(p)}</span></li>`).join('')}</ol></div>
+      <div class="seccion"><h2>Preparación</h2><ol class="pasos">${(r.pasos || []).map((p, n) => `<li><div><span>${esc(p)}</span>${htmlIngsPaso(r, n + 1, factor)}</div></li>`).join('')}</ol></div>
 
       ${r.tips ? `<div class="tips"><b>💡 Tips:</b> ${esc(r.tips)}</div>` : ''}
 
@@ -908,7 +967,7 @@ async function actualizarRapido(cambios) {
 
 async function compartir(r) {
   const factor = 1;
-  const txt = `${r.titulo}\n\nIngredientes:\n${(r.ingredientes || []).map((i) => { const t = textoIng(i, factor); return `• ${[t.cant, t.resto].filter(Boolean).join(' ')}`; }).join('\n')}\n\nPreparación:\n${(r.pasos || []).map((p, i) => `${i + 1}. ${p}`).join('\n')}${r.url_origen ? `\n\n${r.url_origen}` : ''}`;
+  const txt = `${r.titulo}\n\nIngredientes:\n${(r.ingredientes || []).map((i) => `• ${lineaIng(i, factor)}`).join('\n')}\n\nPreparación:\n${(r.pasos || []).map((p, i) => `${i + 1}. ${p}`).join('\n')}${r.url_origen ? `\n\n${r.url_origen}` : ''}`;
   try {
     if (navigator.share) await navigator.share({ title: r.titulo, text: txt });
     else { await navigator.clipboard.writeText(txt); toast('Receta copiada'); }
@@ -945,8 +1004,8 @@ function pintarCocina() {
   $('#cocina-titulo').textContent = r.titulo;
   $('#cocina-paso-n').textContent = `${i + 1}/${total}`;
   $('#cocina-cuerpo').innerHTML = i === 0
-    ? `<b>Prepará todo${estado.porciones ? ` (${estado.porciones} porc.)` : ''}:</b><ul>${(r.ingredientes || []).map((x) => { const t = textoIng(x, factor); return `<li>${esc([t.cant, t.resto].filter(Boolean).join(' '))}</li>`; }).join('')}</ul>`
-    : `<p class="sutil" style="font-size:18px;margin:0 0 8px">Paso ${i}</p>${esc(pasos[i - 1])}`;
+    ? `<b>Prepará todo${estado.porciones ? ` (${estado.porciones} porc.)` : ''}:</b><ul>${(r.ingredientes || []).map((x) => `<li>${esc(lineaIng(x, factor))}</li>`).join('')}</ul>`
+    : `<p class="sutil" style="font-size:18px;margin:0 0 8px">Paso ${i}</p>${esc(pasos[i - 1])}${htmlIngsPaso(r, i, factor)}`;
   $('#b-ant').disabled = i === 0;
   $('#b-sig').textContent = i === total - 1 ? '¡Listo! ✓' : 'Siguiente →';
 }

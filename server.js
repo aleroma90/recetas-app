@@ -2,7 +2,7 @@ const path = require('path');
 require('dotenv').config({ path: ['.env.local', '.env'] });
 const express = require('express');
 const { leerLink } = require('./lib/fuentes');
-const { extraerReceta, buscarRecetas, crearReceta, modificarReceta } = require('./lib/ia');
+const { extraerReceta, buscarRecetas, crearReceta, modificarReceta, enriquecerReceta } = require('./lib/ia');
 const sheets = require('./lib/sheets');
 
 const app = express();
@@ -70,6 +70,17 @@ app.post('/api/descubrir', async (req, res) => {
   } catch (err) {
     console.error('descubrir', err);
     res.status(500).json({ error: 'No pude buscar recetas ahora. Probá de nuevo en un rato.' });
+  }
+});
+
+app.post('/api/enriquecer', async (req, res) => {
+  const receta = req.body?.receta;
+  if (!receta?.ingredientes?.length) return res.status(400).json({ error: 'Receta sin ingredientes.' });
+  try {
+    res.json({ ingredientes: await enriquecerReceta(receta) });
+  } catch (err) {
+    console.error('enriquecer', err);
+    res.status(500).json({ error: 'No pude completar la receta.' });
   }
 });
 
